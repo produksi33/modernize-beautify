@@ -7,9 +7,20 @@ import { HasilUbinanSection } from "@/components/sections/HasilUbinanSection";
 import { GrafikUbinanSection } from "@/components/sections/GrafikUbinanSection";
 import { DatabasePetaniSection } from "@/components/sections/DatabasePetaniSection";
 import { PetunjukTeknisSection } from "@/components/sections/PetunjukTeknisSection";
+import Login from "./Login";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("anomali");
+  const [user, setUser] = useState(() => localStorage.getItem("auth_user") || "");
+
+  if (!user) {
+    return <Login onLogin={setUser} />;
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_user");
+    setUser("");
+  };
 
   const renderSection = () => {
     switch (activeSection) {
@@ -25,7 +36,7 @@ const Index = () => {
   };
 
   return (
-    <DashboardLayout activeSection={activeSection} onSectionChange={setActiveSection}>
+    <DashboardLayout activeSection={activeSection} onSectionChange={setActiveSection} user={user} onLogout={handleLogout}>
       {renderSection()}
     </DashboardLayout>
   );
