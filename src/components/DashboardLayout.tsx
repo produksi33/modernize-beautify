@@ -19,6 +19,8 @@ export function DashboardLayout({ children, activeSection, onSectionChange, user
         onSectionChange={onSectionChange}
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        user={user}
+        onLogout={onLogout}
       />
       <main
         className="flex-1 transition-all duration-300 p-6 lg:p-8"

@@ -131,7 +131,7 @@ export function HasilUbinanSection() {
                   return (
                     <tr key={ri}>
                       <td className="font-semibold">{kodeSub}</td>
-                      {dataSR.map((val, i) => <td key={i}>{val}</td>)}
+                      {dataSR.map((val, i) => <td key={i} className="!px-1 !min-w-[45px] !max-w-[55px] text-center">{val}</td>)}
                       <td className={colorClass}>{hasil}</td>
                       <td contentEditable className="bg-muted/30 min-w-[100px]">{row[17] ?? ""}</td>
                     </tr>

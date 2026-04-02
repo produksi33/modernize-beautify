@@ -76,6 +76,18 @@ export function Sidebar({ activeSection, onSectionChange, collapsed, onToggle, u
         </div>
       </nav>
 
+      {/* User & Logout */}
+      {user && !collapsed && (
+        <div className="px-4 py-3 border-t border-sidebar-border/30 flex items-center justify-between">
+          <span className="text-xs text-sidebar-foreground/70 font-medium">User: {user}</span>
+          {onLogout && (
+            <button onClick={onLogout} className="text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors underline">
+              Logout
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Collapse Toggle */}
       <button
         onClick={onToggle}
