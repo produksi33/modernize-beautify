@@ -26,9 +26,11 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
   collapsed: boolean;
   onToggle: () => void;
+  user?: string;
+  onLogout?: () => void;
 }
 
-export function Sidebar({ activeSection, onSectionChange, collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, collapsed, onToggle, user, onLogout }: SidebarProps) {
   return (
     <aside
       className="fixed top-0 left-0 h-screen z-50 flex flex-col transition-all duration-300"
@@ -73,6 +75,18 @@ export function Sidebar({ activeSection, onSectionChange, collapsed, onToggle }:
           })}
         </div>
       </nav>
+
+      {/* User & Logout */}
+      {user && !collapsed && (
+        <div className="px-4 py-3 border-t border-sidebar-border/30 flex items-center justify-between">
+          <span className="text-xs text-sidebar-foreground/70 font-medium">User: {user}</span>
+          {onLogout && (
+            <button onClick={onLogout} className="text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors underline">
+              Logout
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Collapse Toggle */}
       <button
