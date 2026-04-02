@@ -5,9 +5,11 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   activeSection: string;
   onSectionChange: (section: string) => void;
+  user?: string;
+  onLogout?: () => void;
 }
 
-export function DashboardLayout({ children, activeSection, onSectionChange }: DashboardLayoutProps) {
+export function DashboardLayout({ children, activeSection, onSectionChange, user, onLogout }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
