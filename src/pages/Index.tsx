@@ -1,16 +1,34 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { AnomaliSection } from "@/components/sections/AnomaliSection";
+import { GrafikSection } from "@/components/sections/GrafikSection";
+import { PetaSection } from "@/components/sections/PetaSection";
+import { HasilUbinanSection } from "@/components/sections/HasilUbinanSection";
+import { GrafikUbinanSection } from "@/components/sections/GrafikUbinanSection";
+import { DatabasePetaniSection } from "@/components/sections/DatabasePetaniSection";
+import { PetunjukTeknisSection } from "@/components/sections/PetunjukTeknisSection";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const [activeSection, setActiveSection] = useState("anomali");
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case "anomali": return <AnomaliSection />;
+      case "grafik": return <GrafikSection />;
+      case "peta": return <PetaSection />;
+      case "hasil-ubinan": return <HasilUbinanSection />;
+      case "grafik-ubinan": return <GrafikUbinanSection />;
+      case "database-petani": return <DatabasePetaniSection />;
+      case "petunjuk-teknis": return <PetunjukTeknisSection />;
+      default: return <AnomaliSection />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
+    <DashboardLayout activeSection={activeSection} onSectionChange={setActiveSection}>
+      {renderSection()}
+    </DashboardLayout>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
