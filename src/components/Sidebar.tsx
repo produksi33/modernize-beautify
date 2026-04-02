@@ -26,9 +26,11 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
   collapsed: boolean;
   onToggle: () => void;
+  user?: string;
+  onLogout?: () => void;
 }
 
-export function Sidebar({ activeSection, onSectionChange, collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, collapsed, onToggle, user, onLogout }: SidebarProps) {
   return (
     <aside
       className="fixed top-0 left-0 h-screen z-50 flex flex-col transition-all duration-300"
