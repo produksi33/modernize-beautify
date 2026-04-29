@@ -213,8 +213,17 @@ export function FenomenaSection() {
       });
 
       flat.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-      setItems(flat);
-      if (flat.length === 0) setError("Belum ada berita yang berhasil dimuat. Coba refresh beberapa saat lagi.");
+
+      // Batasi: hanya berita Jawa Tengah & 6 bulan terakhir
+      const cutoff = Date.now() - SIX_MONTHS_MS;
+      const filtered = flat.filter((n) => {
+        const t = new Date(n.pubDate).getTime();
+        if (isNaN(t) || t < cutoff) return false;
+        return isInJateng(`${n.title} ${n.source}`);
+      });
+
+      setItems(filtered);
+      if (filtered.length === 0) setError("Belum ada berita yang berhasil dimuat. Coba refresh beberapa saat lagi.");
     } catch (e: any) {
       setError(e.message || "Gagal memuat berita");
     } finally {
