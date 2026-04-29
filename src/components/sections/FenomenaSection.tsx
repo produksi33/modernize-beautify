@@ -28,15 +28,38 @@ const MONTHS_ID = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 
-// Google News RSS endpoint
+// Bing News RSS — memberikan link langsung ke situs aslinya
+function buildBingNewsRSS(topic: string) {
+  const q = encodeURIComponent(`${topic} ${REGION}`);
+  return `https://www.bing.com/news/search?q=${q}&format=rss&cc=id&setlang=id`;
+}
+
+// Google News RSS — fallback (linknya redirect)
 function buildGoogleNewsRSS(topic: string) {
   const q = encodeURIComponent(`${topic} ${REGION}`);
   return `https://news.google.com/rss/search?q=${q}+when:1y&hl=id&gl=ID&ceid=ID:id`;
 }
 
-// Use a public CORS proxy that returns JSON-wrapped RSS
 function buildProxyURL(rssUrl: string) {
-  return `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+  return `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=30`;
+}
+
+// Extract real publisher URL from Google News redirect link by decoding base64 segment
+function unwrapGoogleNewsLink(link: string): string {
+  try {
+    const url = new URL(link);
+    if (!url.hostname.includes("news.google.com")) return link;
+    // Pattern: /rss/articles/<base64>?... — base64 sometimes contains the original URL
+    const match = url.pathname.match(/\/articles\/([^?\/]+)/);
+    if (match) {
+      const decoded = atob(match[1].replace(/-/g, "+").replace(/_/g, "/") + "==");
+      const urlMatch = decoded.match(/https?:\/\/[^\s\x00-\x1f"'<>]+/);
+      if (urlMatch) return urlMatch[0];
+    }
+  } catch {
+    // ignore
+  }
+  return link;
 }
 
 function decodeHTML(str: string) {
