@@ -6,6 +6,7 @@ import { PetaSection } from "@/components/sections/PetaSection";
 import { HasilUbinanSection } from "@/components/sections/HasilUbinanSection";
 import { GrafikUbinanSection } from "@/components/sections/GrafikUbinanSection";
 import { DatabasePetaniSection } from "@/components/sections/DatabasePetaniSection";
+import { FenomenaSection } from "@/components/sections/FenomenaSection";
 import { PetunjukTeknisSection } from "@/components/sections/PetunjukTeknisSection";
 import Login from "./Login";
 
