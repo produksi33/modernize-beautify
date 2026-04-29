@@ -91,21 +91,35 @@ export function FenomenaSection() {
     try {
       const results = await Promise.allSettled(
         TOPICS.map(async (topic) => {
-          const rss = buildGoogleNewsRSS(topic);
-          const res = await fetch(buildProxyURL(rss));
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const json = await res.json();
-          if (json.status !== "ok" || !Array.isArray(json.items)) return [];
-          return json.items.map((it: any): NewsItem => {
-            const { title, source } = extractSource(decodeHTML(it.title || ""), it.author || "");
-            return {
-              title,
-              link: it.link,
-              pubDate: it.pubDate,
-              source,
-              topic,
-            };
-          });
+          // Coba Bing News dulu (link langsung), fallback ke Google News
+          const sources = [buildBingNewsRSS(topic), buildGoogleNewsRSS(topic)];
+          for (const rss of sources) {
+            try {
+              const res = await fetch(buildProxyURL(rss));
+              if (!res.ok) continue;
+              const json = await res.json();
+              if (json.status !== "ok" || !Array.isArray(json.items) || json.items.length === 0) continue;
+              return json.items.map((it: any): NewsItem => {
+                const { title, source } = extractSource(decodeHTML(it.title || ""), it.author || "");
+                const realLink = unwrapGoogleNewsLink(it.link);
+                let publisher = source;
+                try {
+                  const host = new URL(realLink).hostname.replace(/^www\./, "");
+                  if (host && !host.includes("google.com") && !host.includes("bing.com")) {
+                    publisher = host;
+                  }
+                } catch { /* ignore */ }
+                return {
+                  title,
+                  link: realLink,
+                  pubDate: it.pubDate,
+                  source: publisher,
+                  topic,
+                };
+              });
+            } catch { /* try next source */ }
+          }
+          return [];
         })
       );
 
