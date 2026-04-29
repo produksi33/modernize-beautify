@@ -6,6 +6,7 @@ import {
   TrendingUp,
   Database,
   Info,
+  Newspaper,
   ChevronLeft,
   ChevronRight,
   Leaf,
