@@ -23,6 +23,23 @@ const TOPICS = [
 
 const REGION = "Jawa Tengah";
 
+// Daftar kabupaten/kota di Jawa Tengah untuk filter wilayah
+const JATENG_KEYWORDS = [
+  "jawa tengah", "jateng",
+  "semarang", "surakarta", "solo", "magelang", "pekalongan", "tegal", "salatiga",
+  "cilacap", "banyumas", "purbalingga", "banjarnegara", "kebumen", "purworejo", "wonosobo",
+  "boyolali", "klaten", "sukoharjo", "wonogiri", "karanganyar", "sragen", "grobogan",
+  "blora", "rembang", "pati", "kudus", "jepara", "demak", "kendal", "batang",
+  "pemalang", "brebes", "temanggung",
+];
+
+const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 30 * 6;
+
+function isInJateng(text: string): boolean {
+  const lower = text.toLowerCase();
+  return JATENG_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
 const MONTHS_ID = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
@@ -30,13 +47,13 @@ const MONTHS_ID = [
 
 // Google News RSS — punya tag <source url=""> berisi link asli publisher
 function buildGoogleNewsRSS(topic: string) {
-  const q = encodeURIComponent(`${topic} ${REGION}`);
-  return `https://news.google.com/rss/search?q=${q}+when:1y&hl=id&gl=ID&ceid=ID:id`;
+  const q = encodeURIComponent(`"${topic}" "${REGION}"`);
+  return `https://news.google.com/rss/search?q=${q}+when:6m&hl=id&gl=ID&ceid=ID:id`;
 }
 
 function buildBingNewsRSS(topic: string) {
-  const q = encodeURIComponent(`${topic} ${REGION}`);
-  return `https://www.bing.com/news/search?q=${q}&format=rss&cc=id`;
+  const q = encodeURIComponent(`"${topic}" "${REGION}"`);
+  return `https://www.bing.com/news/search?q=${q}&format=rss&cc=id&qft=interval%3d%229%22`;
 }
 
 // Proxy RSS ke JSON yang stabil di browser dan tidak butuh backend/API key
@@ -196,8 +213,17 @@ export function FenomenaSection() {
       });
 
       flat.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-      setItems(flat);
-      if (flat.length === 0) setError("Belum ada berita yang berhasil dimuat. Coba refresh beberapa saat lagi.");
+
+      // Batasi: hanya berita Jawa Tengah & 6 bulan terakhir
+      const cutoff = Date.now() - SIX_MONTHS_MS;
+      const filtered = flat.filter((n) => {
+        const t = new Date(n.pubDate).getTime();
+        if (isNaN(t) || t < cutoff) return false;
+        return isInJateng(`${n.title} ${n.source}`);
+      });
+
+      setItems(filtered);
+      if (filtered.length === 0) setError("Belum ada berita yang berhasil dimuat. Coba refresh beberapa saat lagi.");
     } catch (e: any) {
       setError(e.message || "Gagal memuat berita");
     } finally {
@@ -266,7 +292,7 @@ export function FenomenaSection() {
       <SectionHeader
         icon={Newspaper}
         title="Fenomena"
-        description={`Berita pertanian padi & pangan wilayah ${REGION}, dikelompokkan per bulan.`}
+        description={`Berita pertanian padi & pangan wilayah ${REGION} (6 bulan terakhir), dikelompokkan per bulan.`}
       />
 
       <div className="dashboard-card">
