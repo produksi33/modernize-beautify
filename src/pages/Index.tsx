@@ -31,6 +31,7 @@ const Index = () => {
       case "hasil-ubinan": return <HasilUbinanSection />;
       case "grafik-ubinan": return <GrafikUbinanSection />;
       case "database-petani": return <DatabasePetaniSection />;
+      case "fenomena": return <FenomenaSection />;
       case "petunjuk-teknis": return <PetunjukTeknisSection />;
       default: return <AnomaliSection />;
     }
