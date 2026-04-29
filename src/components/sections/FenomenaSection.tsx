@@ -47,13 +47,13 @@ const MONTHS_ID = [
 
 // Google News RSS — punya tag <source url=""> berisi link asli publisher
 function buildGoogleNewsRSS(topic: string) {
-  const q = encodeURIComponent(`${topic} ${REGION}`);
-  return `https://news.google.com/rss/search?q=${q}+when:1y&hl=id&gl=ID&ceid=ID:id`;
+  const q = encodeURIComponent(`"${topic}" "${REGION}"`);
+  return `https://news.google.com/rss/search?q=${q}+when:6m&hl=id&gl=ID&ceid=ID:id`;
 }
 
 function buildBingNewsRSS(topic: string) {
-  const q = encodeURIComponent(`${topic} ${REGION}`);
-  return `https://www.bing.com/news/search?q=${q}&format=rss&cc=id`;
+  const q = encodeURIComponent(`"${topic}" "${REGION}"`);
+  return `https://www.bing.com/news/search?q=${q}&format=rss&cc=id&qft=interval%3d%229%22`;
 }
 
 // Proxy RSS ke JSON yang stabil di browser dan tidak butuh backend/API key
