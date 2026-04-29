@@ -34,9 +34,14 @@ function buildGoogleNewsRSS(topic: string) {
   return `https://news.google.com/rss/search?q=${q}+when:1y&hl=id&gl=ID&ceid=ID:id`;
 }
 
-// Proxy CORS yang mengembalikan raw XML (tanpa API key)
-function buildProxyURL(rssUrl: string) {
-  return `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+function buildBingNewsRSS(topic: string) {
+  const q = encodeURIComponent(`${topic} ${REGION}`);
+  return `https://www.bing.com/news/search?q=${q}&format=rss&cc=id`;
+}
+
+// Proxy RSS ke JSON yang stabil di browser dan tidak butuh backend/API key
+function buildRssJsonURL(rssUrl: string) {
+  return `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 }
 
 function decodeHTML(str: string) {
@@ -68,6 +73,44 @@ function unwrapGoogleNewsLink(link: string): string {
     }
   } catch { /* ignore */ }
   return link;
+}
+
+function unwrapBingNewsLink(link: string): string {
+  try {
+    const url = new URL(link);
+    if (!url.hostname.includes("bing.com")) return link;
+    return url.searchParams.get("url") || link;
+  } catch { /* ignore */ }
+  return link;
+}
+
+function sourceFromLink(link: string, fallback: string) {
+  try {
+    return new URL(link).hostname.replace(/^www\./, "") || fallback;
+  } catch { /* ignore */ }
+  return fallback;
+}
+
+function parseRssJson(data: any, topic: string, sourceType: "bing" | "google"): NewsItem[] {
+  if (data?.status !== "ok" || !Array.isArray(data.items)) return [];
+
+  return data.items.map((item: any): NewsItem => {
+    const rawTitle = decodeHTML(item.title || "");
+    const rawLink = item.link || item.guid || "";
+    const directLink = sourceType === "bing"
+      ? unwrapBingNewsLink(rawLink)
+      : unwrapGoogleNewsLink(rawLink);
+    const { title, source } = extractSource(rawTitle, item.author || "");
+    const publisher = sourceFromLink(directLink, source || item.author || "Sumber berita");
+
+    return {
+      title,
+      link: directLink,
+      pubDate: item.pubDate || new Date().toISOString(),
+      source: publisher,
+      topic,
+    };
+  }).filter((item: NewsItem) => item.title && item.link && !item.link.includes("news.google.com"));
 }
 
 // Parse RSS XML -> NewsItem[]
@@ -122,10 +165,20 @@ export function FenomenaSection() {
     try {
       const results = await Promise.allSettled(
         TOPICS.map(async (topic) => {
-          const res = await fetch(buildProxyURL(buildGoogleNewsRSS(topic)));
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const xml = await res.text();
-          return parseRSS(xml, topic);
+          const sources = [
+            { type: "bing" as const, url: buildBingNewsRSS(topic) },
+            { type: "google" as const, url: buildGoogleNewsRSS(topic) },
+          ];
+
+          for (const source of sources) {
+            const res = await fetch(buildRssJsonURL(source.url));
+            if (!res.ok) continue;
+            const data = await res.json();
+            const news = parseRssJson(data, topic, source.type);
+            if (news.length > 0) return news;
+          }
+
+          return [];
         })
       );
 
@@ -144,7 +197,7 @@ export function FenomenaSection() {
 
       flat.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
       setItems(flat);
-      if (flat.length === 0) setError("Tidak ada berita ditemukan. Coba refresh.");
+      if (flat.length === 0) setError("Belum ada berita yang berhasil dimuat. Coba refresh beberapa saat lagi.");
     } catch (e: any) {
       setError(e.message || "Gagal memuat berita");
     } finally {
