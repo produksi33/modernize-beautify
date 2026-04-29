@@ -23,6 +23,23 @@ const TOPICS = [
 
 const REGION = "Jawa Tengah";
 
+// Daftar kabupaten/kota di Jawa Tengah untuk filter wilayah
+const JATENG_KEYWORDS = [
+  "jawa tengah", "jateng",
+  "semarang", "surakarta", "solo", "magelang", "pekalongan", "tegal", "salatiga",
+  "cilacap", "banyumas", "purbalingga", "banjarnegara", "kebumen", "purworejo", "wonosobo",
+  "boyolali", "klaten", "sukoharjo", "wonogiri", "karanganyar", "sragen", "grobogan",
+  "blora", "rembang", "pati", "kudus", "jepara", "demak", "kendal", "batang",
+  "pemalang", "brebes", "temanggung",
+];
+
+const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 30 * 6;
+
+function isInJateng(text: string): boolean {
+  const lower = text.toLowerCase();
+  return JATENG_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
 const MONTHS_ID = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
