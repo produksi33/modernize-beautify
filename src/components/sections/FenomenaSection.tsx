@@ -28,38 +28,15 @@ const MONTHS_ID = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 
-// Bing News RSS — memberikan link langsung ke situs aslinya
-function buildBingNewsRSS(topic: string) {
-  const q = encodeURIComponent(`${topic} ${REGION}`);
-  return `https://www.bing.com/news/search?q=${q}&format=rss&cc=id&setlang=id`;
-}
-
-// Google News RSS — fallback (linknya redirect)
+// Google News RSS — punya tag <source url=""> berisi link asli publisher
 function buildGoogleNewsRSS(topic: string) {
   const q = encodeURIComponent(`${topic} ${REGION}`);
   return `https://news.google.com/rss/search?q=${q}+when:1y&hl=id&gl=ID&ceid=ID:id`;
 }
 
+// Proxy CORS yang mengembalikan raw XML (tanpa API key)
 function buildProxyURL(rssUrl: string) {
-  return `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=30`;
-}
-
-// Extract real publisher URL from Google News redirect link by decoding base64 segment
-function unwrapGoogleNewsLink(link: string): string {
-  try {
-    const url = new URL(link);
-    if (!url.hostname.includes("news.google.com")) return link;
-    // Pattern: /rss/articles/<base64>?... — base64 sometimes contains the original URL
-    const match = url.pathname.match(/\/articles\/([^?\/]+)/);
-    if (match) {
-      const decoded = atob(match[1].replace(/-/g, "+").replace(/_/g, "/") + "==");
-      const urlMatch = decoded.match(/https?:\/\/[^\s\x00-\x1f"'<>]+/);
-      if (urlMatch) return urlMatch[0];
-    }
-  } catch {
-    // ignore
-  }
-  return link;
+  return `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
 }
 
 function decodeHTML(str: string) {
@@ -69,7 +46,6 @@ function decodeHTML(str: string) {
 }
 
 function extractSource(title: string, fallback: string): { title: string; source: string } {
-  // Google News titles often end with " - Source Name"
   const idx = title.lastIndexOf(" - ");
   if (idx > 0 && idx > title.length - 60) {
     return { title: title.slice(0, idx).trim(), source: title.slice(idx + 3).trim() };
@@ -77,11 +53,66 @@ function extractSource(title: string, fallback: string): { title: string; source
   return { title, source: fallback || "Google News" };
 }
 
+// Decode base64 segment di URL Google News -> URL publisher asli
+function unwrapGoogleNewsLink(link: string): string {
+  try {
+    const url = new URL(link);
+    if (!url.hostname.includes("news.google.com")) return link;
+    const match = url.pathname.match(/\/articles\/([^?\/]+)/);
+    if (match) {
+      let b64 = match[1].replace(/-/g, "+").replace(/_/g, "/");
+      while (b64.length % 4) b64 += "=";
+      const decoded = atob(b64);
+      const urlMatch = decoded.match(/https?:\/\/[^\s\x00-\x1f"'<>]+/);
+      if (urlMatch) return urlMatch[0];
+    }
+  } catch { /* ignore */ }
+  return link;
+}
+
+// Parse RSS XML -> NewsItem[]
+function parseRSS(xmlText: string, topic: string): NewsItem[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlText, "text/xml");
+  const items = Array.from(doc.querySelectorAll("item"));
+  return items.map((node): NewsItem => {
+    const rawTitle = decodeHTML(node.querySelector("title")?.textContent || "");
+    const linkText = node.querySelector("link")?.textContent?.trim() || "";
+    const pubDate = node.querySelector("pubDate")?.textContent || "";
+
+    // <source url="https://publisher.com/...">Publisher Name</source>
+    const sourceNode = node.querySelector("source");
+    const sourceUrl = sourceNode?.getAttribute("url") || "";
+    const sourceName = sourceNode?.textContent?.trim() || "";
+
+    // Prioritas link asli: <source url> > unwrap base64 > raw link
+    let realLink = sourceUrl || unwrapGoogleNewsLink(linkText);
+
+    // Coba ekstrak link publisher dari description (kadang ada <a href="...">)
+    if (realLink.includes("news.google.com") || !realLink) {
+      const desc = node.querySelector("description")?.textContent || "";
+      const hrefMatch = desc.match(/href=["'](https?:\/\/[^"']+)["']/);
+      if (hrefMatch && !hrefMatch[1].includes("news.google.com")) {
+        realLink = hrefMatch[1];
+      }
+    }
+
+    const { title, source } = extractSource(rawTitle, sourceName);
+    let publisher = sourceName || source;
+    try {
+      const host = new URL(realLink).hostname.replace(/^www\./, "");
+      if (host && !host.includes("google.com")) publisher = sourceName || host;
+    } catch { /* ignore */ }
+
+    return { title, link: realLink, pubDate, source: publisher, topic };
+  });
+}
+
 export function FenomenaSection() {
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState<string>("all"); // YYYY-MM
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [search, setSearch] = useState("");
 
@@ -91,35 +122,10 @@ export function FenomenaSection() {
     try {
       const results = await Promise.allSettled(
         TOPICS.map(async (topic) => {
-          // Coba Bing News dulu (link langsung), fallback ke Google News
-          const sources = [buildBingNewsRSS(topic), buildGoogleNewsRSS(topic)];
-          for (const rss of sources) {
-            try {
-              const res = await fetch(buildProxyURL(rss));
-              if (!res.ok) continue;
-              const json = await res.json();
-              if (json.status !== "ok" || !Array.isArray(json.items) || json.items.length === 0) continue;
-              return json.items.map((it: any): NewsItem => {
-                const { title, source } = extractSource(decodeHTML(it.title || ""), it.author || "");
-                const realLink = unwrapGoogleNewsLink(it.link);
-                let publisher = source;
-                try {
-                  const host = new URL(realLink).hostname.replace(/^www\./, "");
-                  if (host && !host.includes("google.com") && !host.includes("bing.com")) {
-                    publisher = host;
-                  }
-                } catch { /* ignore */ }
-                return {
-                  title,
-                  link: realLink,
-                  pubDate: it.pubDate,
-                  source: publisher,
-                  topic,
-                };
-              });
-            } catch { /* try next source */ }
-          }
-          return [];
+          const res = await fetch(buildProxyURL(buildGoogleNewsRSS(topic)));
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const xml = await res.text();
+          return parseRSS(xml, topic);
         })
       );
 
