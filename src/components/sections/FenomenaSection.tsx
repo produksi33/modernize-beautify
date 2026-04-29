@@ -292,7 +292,7 @@ export function FenomenaSection() {
       <SectionHeader
         icon={Newspaper}
         title="Fenomena"
-        description={`Berita pertanian padi & pangan wilayah ${REGION}, dikelompokkan per bulan.`}
+        description={`Berita pertanian padi & pangan wilayah ${REGION} (6 bulan terakhir), dikelompokkan per bulan.`}
       />
 
       <div className="dashboard-card">
