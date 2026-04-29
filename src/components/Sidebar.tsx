@@ -19,6 +19,7 @@ const menuItems = [
   { id: "hasil-ubinan", label: "Hasil Ubinan", icon: FileText },
   { id: "grafik-ubinan", label: "Grafik Hasil Ubinan", icon: TrendingUp },
   { id: "database-petani", label: "Database Petani", icon: Database },
+  { id: "fenomena", label: "Fenomena", icon: Newspaper },
   { id: "petunjuk-teknis", label: "Petunjuk Teknis", icon: Info },
 ];
 
